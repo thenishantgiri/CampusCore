@@ -7,16 +7,18 @@ import {
 } from 'class-validator';
 import { RoleType } from 'generated/prisma';
 
-export class CreateRoleDto {
+export class UpdateRoleDto {
+  @IsOptional()
   @IsString()
   @MinLength(3)
-  name: string;
+  name?: string;
 
-  @IsEnum(RoleType)
   @IsOptional()
+  @IsEnum(RoleType)
   type?: RoleType;
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  permissions: string[];
+  permissions?: string[];
 }

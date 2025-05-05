@@ -8,15 +8,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Permission {
+  id    String  @id @default(cuid())
+  key   String  @unique
+  label String? // Optional UI name
+  roles Role[]  @relation("RolePermissions")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Role {
-  id          String   @id @default(cuid()) // e.g. 'role-admin' or custom
+  id          String       @id @default(cuid()) // e.g. 'role-admin' or custom
   name        String
-  type        RoleType @default(CUSTOM) // 'STATIC' or 'CUSTOM'
-  permissions String[] // e.g. ['students:read', 'fees:write']
+  type        RoleType     @default(CUSTOM) // 'STATIC' or 'CUSTOM'
+  users       User[]
+  permissions Permission[] @relation("RolePermissions")
   // TODO: institutionId and institution removed for now
-  users       User[] // back-reference
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum RoleType {
@@ -25,13 +36,13 @@ enum RoleType {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @relation(fields: [roleId], references: [id])
-  roleId    String
-  // other fields
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  name     String
+  role     Role   @relation(fields: [roleId], references: [id])
+  roleId   String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

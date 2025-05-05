@@ -120,11 +120,18 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.PermissionScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  label: 'label',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.RoleScalarFieldEnum = {
   id: 'id',
   name: 'name',
   type: 'type',
-  permissions: 'permissions',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -148,12 +155,18 @@ exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
 };
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
 exports.RoleType = exports.$Enums.RoleType = {
   STATIC: 'STATIC',
   CUSTOM: 'CUSTOM'
 };
 
 exports.Prisma.ModelName = {
+  Permission: 'Permission',
   Role: 'Role',
   User: 'User'
 };
