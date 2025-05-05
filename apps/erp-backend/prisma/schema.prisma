@@ -9,11 +9,19 @@ datasource db {
 }
 
 model Role {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  users     User[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid()) // e.g. 'role-admin' or custom
+  name        String
+  type        RoleType @default(CUSTOM) // 'STATIC' or 'CUSTOM'
+  permissions String[] // e.g. ['students:read', 'fees:write']
+  // TODO: institutionId and institution removed for now
+  users       User[] // back-reference
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum RoleType {
+  STATIC
+  CUSTOM
 }
 
 model User {
@@ -21,8 +29,9 @@ model User {
   email     String   @unique
   password  String
   name      String
-  roleId    String
   role      Role     @relation(fields: [roleId], references: [id])
+  roleId    String
+  // other fields
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

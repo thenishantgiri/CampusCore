@@ -123,6 +123,8 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.RoleScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  type: 'type',
+  permissions: 'permissions',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -146,7 +148,10 @@ exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
 };
-
+exports.RoleType = exports.$Enums.RoleType = {
+  STATIC: 'STATIC',
+  CUSTOM: 'CUSTOM'
+};
 
 exports.Prisma.ModelName = {
   Role: 'Role',
