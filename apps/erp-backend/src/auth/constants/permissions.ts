@@ -26,8 +26,12 @@ export const PERMISSIONS = {
   },
   FEES: {
     READ: 'fees:read',
+    CREATE: 'fees:create',
     UPDATE: 'fees:update',
+    DELETE: 'fees:delete',
     PAY: 'fees:pay',
+    REFUND: 'fees:refund',
+    GENERATE_RECEIPT: 'fees:generate-receipt',
   },
   TEACHERS: {
     READ: 'teachers:read',
@@ -42,5 +46,24 @@ export const PERMISSIONS = {
   INSTITUTIONS: {
     READ: 'institutions:read',
     UPDATE: 'institutions:update',
+  },
+  AUTH: {
+    REGISTER_USER: 'auth:register-user',
+  },
+  SYSTEM: {
+    VIEW_LOGS: 'system:view-logs',
+    CONFIGURE: 'system:configure',
+  },
+  AUDIT: {
+    VIEW: 'audit:view',
+    EXPORT: 'audit:export',
+  },
+  COURSES: {
+    READ: 'courses:read',
+    CREATE: 'courses:create',
+    UPDATE: 'courses:update',
+    DELETE: 'courses:delete',
+    ASSIGN_TEACHER: 'courses:assign-teacher',
+    ASSIGN_STUDENT: 'courses:assign-student',
   },
 };

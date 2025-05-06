@@ -7,6 +7,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { RequestContextModule } from 'src/common/logger/request-context.module';
+import { LoggerModule } from 'src/common/logger/logger.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { PermissionsGuard } from './guards/permissions.guard';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '7d' },
     }),
+    RequestContextModule,
+    LoggerModule,
   ],
   controllers: [AuthController],
   providers: [

@@ -8,6 +8,8 @@ import { RolesModule } from './roles/roles.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { RequestContextModule } from './common/logger/request-context.module';
+import { LoggerModule } from './common/logger/logger.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { PermissionsModule } from './permissions/permissions.module';
     PrismaModule,
     UsersModule,
     PermissionsModule,
+    RequestContextModule,
+    LoggerModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy, PrismaService],
