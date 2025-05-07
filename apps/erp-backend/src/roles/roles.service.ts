@@ -1,4 +1,6 @@
 import {
+  ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -156,6 +158,89 @@ export class RolesService {
     }
   }
 
+  async delete(id: string): Promise<Role> {
+    const context = this.requestContext.getContext();
+    const log = this.logger.child({ method: 'deleteRole' });
+
+    log.info('Attempting to delete role', { roleId: id });
+
+    try {
+      // First, check if the role exists
+      const roleToDelete = await this.prisma.role.findUnique({
+        where: { id },
+        include: { users: { select: { id: true } } },
+      });
+
+      if (!roleToDelete) {
+        log.warn('Role deletion failed: Role not found', { roleId: id });
+        throw new NotFoundException('Role not found');
+      }
+
+      // Check if the role is assigned to any users
+      if (roleToDelete.users.length > 0) {
+        log.warn('Role deletion failed: Role is assigned to users', {
+          roleId: id,
+          userCount: roleToDelete.users.length,
+        });
+        throw new ConflictException(
+          `Cannot delete role. It is assigned to ${roleToDelete.users.length} user(s).`,
+        );
+      }
+
+      // Check if trying to delete a STATIC role
+      if (roleToDelete.type === 'STATIC') {
+        log.warn('Role deletion failed: Cannot delete STATIC role', {
+          roleId: id,
+          roleType: roleToDelete.type,
+        });
+        throw new ForbiddenException('STATIC roles cannot be deleted');
+      }
+
+      // Delete the role
+      const deletedRole = await this.prisma.role.delete({
+        where: { id },
+      });
+
+      // Create audit log
+      this.logger.auditLog('ROLE_DELETED', {
+        actor: {
+          id: context.userId,
+          email: context.email,
+          role: context.roleId,
+        },
+        details: {
+          role: {
+            id: deletedRole.id,
+            name: deletedRole.name,
+          },
+        },
+      });
+
+      log.info('Role deleted successfully', {
+        roleId: deletedRole.id,
+        roleName: deletedRole.name,
+      });
+
+      return deletedRole;
+    } catch (err) {
+      // If it's already a NestJS exception, just log it and rethrow
+      if (
+        err instanceof NotFoundException ||
+        err instanceof ConflictException ||
+        err instanceof ForbiddenException
+      ) {
+        throw err;
+      }
+
+      log.error('Error deleting role', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        roleId: id,
+      });
+
+      throw new InternalServerErrorException('Failed to delete role');
+    }
+  }
+
   async findAll(): Promise<Role[]> {
     const log = this.logger.child({ method: 'findAllRoles' });
 
@@ -175,10 +260,12 @@ export class RolesService {
   ): never {
     const message =
       err instanceof Error ? err.message : 'Unhandled exception occurred';
-    const code =
-      typeof err === 'object' && err !== null && 'code' in err
-        ? String((err as { code?: string }).code)
-        : undefined;
+
+    // Check for Prisma error code - need to check for code property safely
+    let code: string | undefined;
+    if (err && typeof err === 'object' && 'code' in err) {
+      code = String((err as any).code);
+    }
 
     log.error(`Error in ${operation}`, {
       message,
@@ -186,6 +273,7 @@ export class RolesService {
       ...(roleId ? { roleId } : {}),
     });
 
+    // Check for Prisma not found error
     if (code === 'P2025') {
       throw new NotFoundException('Role not found');
     }

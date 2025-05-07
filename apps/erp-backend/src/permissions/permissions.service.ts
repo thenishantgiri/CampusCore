@@ -70,17 +70,15 @@ export class PermissionsService {
       return permission;
     } catch (err) {
       // Handle specific Prisma errors
-      if (err instanceof Prisma.PrismaClientKnownRequestError) {
-        if (err.code === 'P2002') {
-          // Unique constraint violation
-          log.warn('Permission creation failed: Key already exists', {
-            key: dto.key,
-            error: err.message,
-          });
-          throw new ConflictException(
-            `Permission with key "${dto.key}" already exists`,
-          );
-        }
+      if (err instanceof Error && 'code' in err && err.code === 'P2002') {
+        // Unique constraint violation
+        log.warn('Permission creation failed: Key already exists', {
+          key: dto.key,
+          error: err.message,
+        });
+        throw new ConflictException(
+          `Permission with key "${dto.key}" already exists`,
+        );
       }
 
       // If it's already a NestJS exception, just log it and rethrow

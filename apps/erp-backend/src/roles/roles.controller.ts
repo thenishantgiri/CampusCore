@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -20,6 +21,7 @@ import {
   ApiUnauthorizedResponse,
   ApiNotFoundResponse,
   ApiBody,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -97,5 +99,32 @@ export class RolesController {
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     return this.rolesService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Permission(PERMISSIONS.ROLES.DELETE)
+  @ApiOperation({ summary: 'Delete a role' })
+  @ApiParam({
+    name: 'id',
+    description: 'Role ID',
+    example: 'role-finance-admin',
+  })
+  @ApiOkResponse({
+    description: 'The role has been successfully deleted',
+    type: RoleEntity,
+  })
+  @ApiNotFoundResponse({ description: 'Role not found' })
+  @ApiForbiddenResponse({
+    description:
+      'Forbidden - requires super admin access and roles:delete permission. STATIC roles cannot be deleted.',
+  })
+  @ApiConflictResponse({
+    description:
+      'Conflict - The role is assigned to one or more users and cannot be deleted',
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  deleteRole(@Param('id') id: string) {
+    return this.rolesService.delete(id);
   }
 }

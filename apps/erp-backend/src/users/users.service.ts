@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoggerService } from 'src/common/logger/logger.service';
@@ -10,6 +11,7 @@ import { RequestContextService } from 'src/common/logger/request-context.service
 import { SafeUser } from 'src/auth/types/safe-user.interface';
 import { Prisma } from 'generated/prisma';
 import { Role } from 'src/auth/constants/roles.enum';
+import { FindUsersQueryDto } from './dto/find-users.query.dto';
 
 @Injectable()
 export class UsersService {
@@ -45,6 +47,7 @@ export class UsersService {
       });
 
       if (!currentUser) {
+        log.warn('User not found', { targetUserId: userId });
         throw new NotFoundException('User not found');
       }
 
@@ -55,7 +58,35 @@ export class UsersService {
       });
 
       if (!newRole) {
+        log.warn('Role not found', { roleId });
         throw new NotFoundException('Role not found');
+      }
+
+      if (
+        context.roleId !== Role.SUPER_ADMIN &&
+        newRole.name === Role.SUPER_ADMIN
+      ) {
+        log.warn(
+          'Permission denied: Non-SUPER_ADMIN attempted to assign SUPER_ADMIN role',
+          {
+            actorRoleId: context.roleId,
+            actorUserId: context.userId,
+            targetUserId: userId,
+            attemptedRoleId: roleId,
+          },
+        );
+        throw new ForbiddenException(
+          'Only SUPER_ADMIN can assign the SUPER_ADMIN role.',
+        );
+      }
+
+      if (currentUser.roleId === roleId) {
+        log.info('Role update skipped: User already has the specified role', {
+          userId: userId,
+          roleId: roleId,
+          roleName: newRole.name,
+        });
+        throw new BadRequestException('User already has the specified role.');
       }
 
       // Update the user's role
@@ -107,6 +138,15 @@ export class UsersService {
 
       return updatedUser;
     } catch (err: unknown) {
+      // If it's already a NestJS exception, just rethrow it
+      if (
+        err instanceof NotFoundException ||
+        err instanceof ForbiddenException ||
+        err instanceof BadRequestException
+      ) {
+        throw err;
+      }
+
       let message = 'Unknown error';
       let code: string | undefined;
 
@@ -122,6 +162,7 @@ export class UsersService {
         attemptedRoleId: roleId,
       });
 
+      // Handle specific Prisma error
       if (code === 'P2025') {
         throw new NotFoundException('User not found');
       }
@@ -165,12 +206,10 @@ export class UsersService {
         throw new ForbiddenException('You cannot delete your own account');
       }
 
-      // Use string comparison instead of enum comparison
-      const superAdminRoleId = Role.SUPER_ADMIN.toString();
-      const isSuperAdminTarget = userToDelete.roleId === superAdminRoleId;
-      const isSuperAdminActor = context.roleId === superAdminRoleId;
-
-      if (isSuperAdminTarget && !isSuperAdminActor) {
+      if (
+        userToDelete.roleId === Role.SUPER_ADMIN &&
+        context.roleId !== Role.SUPER_ADMIN
+      ) {
         log.warn(
           'User deletion failed: Insufficient permissions to delete SUPER_ADMIN',
           {
@@ -232,14 +271,17 @@ export class UsersService {
       }
 
       // Handle specific Prisma errors
-      if (err instanceof Prisma.PrismaClientKnownRequestError) {
-        if (err.code === 'P2025') {
-          log.warn('User deletion failed: User not found', {
-            targetUserId: userId,
-            error: err.message,
-          });
-          throw new NotFoundException('User not found');
-        }
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        (err as any).code === 'P2025'
+      ) {
+        log.warn('User deletion failed: User not found', {
+          targetUserId: userId,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+        throw new NotFoundException('User not found');
       }
 
       log.error('Error deleting user', {
@@ -248,6 +290,123 @@ export class UsersService {
       });
 
       throw new InternalServerErrorException('Failed to delete user');
+    }
+  }
+
+  async findAllUsers(query: FindUsersQueryDto): Promise<{
+    data: SafeUser[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      pages: number;
+    };
+  }> {
+    const log = this.logger.child({ method: 'findAllUsers' });
+
+    const { page = 1, limit = 10, roleId, search } = query;
+    const skip = (page - 1) * limit;
+
+    log.info('Fetching users with filters', { page, limit, roleId, search });
+
+    try {
+      // Build where conditions for filtering
+      const where: Prisma.UserWhereInput = {};
+
+      if (roleId) {
+        where.roleId = roleId;
+      }
+
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      // Get total count for pagination metadata
+      const total = await this.prisma.user.count({ where });
+
+      // Get users with pagination and filtering
+      const users = await this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          roleId: true,
+          role: { select: { name: true } },
+          createdAt: true,
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }, // Most recent users first
+      });
+
+      // Calculate total pages
+      const pages = Math.ceil(total / limit);
+
+      log.info(
+        `Successfully retrieved ${users.length} users (page ${page} of ${pages}, total: ${total})`,
+      );
+
+      return {
+        data: users,
+        meta: {
+          total,
+          page,
+          limit,
+          pages,
+        },
+      };
+    } catch (err) {
+      log.error('Error fetching users', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        query,
+      });
+
+      throw new InternalServerErrorException('Failed to fetch users');
+    }
+  }
+
+  async findUserById(userId: string): Promise<SafeUser> {
+    const log = this.logger.child({ method: 'findUserById' });
+
+    log.info('Fetching user by ID', { userId });
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          roleId: true,
+          role: { select: { name: true } },
+          createdAt: true,
+        },
+      });
+
+      if (!user) {
+        log.warn('User not found', { userId });
+        throw new NotFoundException('User not found');
+      }
+
+      log.info('User retrieved successfully', { userId });
+
+      return user;
+    } catch (err) {
+      // If it's already a NestJS exception, just rethrow it
+      if (err instanceof NotFoundException) {
+        throw err;
+      }
+
+      log.error('Error fetching user', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        userId,
+      });
+
+      throw new InternalServerErrorException('Failed to fetch user');
     }
   }
 }
