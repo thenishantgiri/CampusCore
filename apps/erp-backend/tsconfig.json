@@ -16,6 +16,11 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
     "strictBindCallApply": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "generated/prisma": ["generated/prisma"],
+      "generated/prisma/*": ["generated/prisma/*"],
+      "src/*": ["src/*"]
+    }
   }
 }

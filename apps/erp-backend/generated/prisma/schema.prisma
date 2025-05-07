@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Permission {
+  id    String  @id @default(cuid())
+  key   String  @unique
+  label String? // Optional UI name
+  roles Role[]  @relation("RolePermissions")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id          String       @id @default(cuid()) // e.g. 'role-admin' or custom
+  name        String
+  type        RoleType     @default(CUSTOM) // 'STATIC' or 'CUSTOM'
+  users       User[]
+  permissions Permission[] @relation("RolePermissions")
+  // TODO: institutionId and institution removed for now
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum RoleType {
+  STATIC
+  CUSTOM
+}
+
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  name     String
+  role     Role   @relation(fields: [roleId], references: [id])
+  roleId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
