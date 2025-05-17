@@ -1,4 +1,3 @@
-// test/e2e/jest-e2e.setup.ts
 import { execSync } from 'child_process';
 import { PrismaClient } from '../../generated/prisma';
 import * as bcrypt from 'bcrypt';

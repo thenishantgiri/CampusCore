@@ -11,7 +11,7 @@ datasource db {
 model Permission {
   id    String  @id @default(cuid())
   key   String  @unique
-  label String? // Optional UI name
+  label String?
   roles Role[]  @relation("RolePermissions")
 
   createdAt DateTime @default(now())
@@ -19,12 +19,11 @@ model Permission {
 }
 
 model Role {
-  id          String       @id @default(cuid()) // e.g. 'role-admin' or custom
+  id          String       @id @default(cuid()) // e.g. 'role-admin'
   name        String
-  type        RoleType     @default(CUSTOM) // 'STATIC' or 'CUSTOM'
+  type        RoleType     @default(CUSTOM)
   users       User[]
   permissions Permission[] @relation("RolePermissions")
-  // TODO: institutionId and institution removed for now
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -42,6 +41,21 @@ model User {
   name     String
   role     Role   @relation(fields: [roleId], references: [id])
   roleId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Student   Student?
+}
+
+model Student {
+  id                String   @id @default(uuid())
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime
+  photoUrl          String?
+  emergencyContacts Json
+  user              User     @relation(fields: [userId], references: [id])
+  userId            String   @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

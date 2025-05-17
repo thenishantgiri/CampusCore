@@ -5,10 +5,22 @@ export default async function globalTeardown() {
     datasources: { db: { url: process.env.DATABASE_URL_TEST } },
   });
 
-  // Delete all records (this will cascade through implicit join tables)
-  await prisma.user.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.permission.deleteMany();
+  // Delete in the correct order to avoid constraint violations
+  try {
+    // First delete students (which reference users)
+    await prisma.student.deleteMany();
 
-  await prisma.$disconnect();
+    // Then delete users (which reference roles)
+    await prisma.user.deleteMany();
+
+    // Now roles can be deleted (which reference permissions through a join table)
+    await prisma.role.deleteMany();
+
+    // Finally delete permissions
+    await prisma.permission.deleteMany();
+  } catch (error) {
+    console.error('Error during test teardown:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
 }

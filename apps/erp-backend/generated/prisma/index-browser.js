@@ -146,9 +146,25 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.StudentScalarFieldEnum = {
+  id: 'id',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  dateOfBirth: 'dateOfBirth',
+  photoUrl: 'photoUrl',
+  emergencyContacts: 'emergencyContacts',
+  userId: 'userId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -160,6 +176,12 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
 exports.RoleType = exports.$Enums.RoleType = {
   STATIC: 'STATIC',
   CUSTOM: 'CUSTOM'
@@ -168,7 +190,8 @@ exports.RoleType = exports.$Enums.RoleType = {
 exports.Prisma.ModelName = {
   Permission: 'Permission',
   Role: 'Role',
-  User: 'User'
+  User: 'User',
+  Student: 'Student'
 };
 
 /**

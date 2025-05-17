@@ -8,17 +8,6 @@ import {
 import { Request, Response } from 'express';
 import logger from '../logger/pino.logger';
 
-// Define the expected user structure
-interface RequestUser {
-  id?: string;
-  [key: string]: unknown;
-}
-
-// Extend Express Request to include our user type
-interface AuthenticatedRequest extends Request {
-  user?: RequestUser;
-}
-
 interface ErrorResponse {
   message?: string | string[];
   error?: string;
@@ -28,9 +17,18 @@ interface ErrorResponse {
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
+    // Validate arguments host
+    if (!host || !host.switchToHttp) {
+      logger.error('Invalid arguments host provided to exception filter');
+      return;
+    }
+
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<AuthenticatedRequest>();
+    const request = ctx.getRequest<Request>();
+
+    // Generate unique error ID for tracking
+    const errorId = `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     const status =
       exception instanceof HttpException
@@ -51,7 +49,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
         // Handle message arrays (common in validation errors)
         if (Array.isArray(errObj.message)) {
-          message = errObj.message.join(', ');
+          message =
+            errObj.message.length > 1
+              ? `Multiple errors: ${errObj.message.join('; ')}`
+              : errObj.message[0] || 'Validation error';
         } else if (errObj.message && typeof errObj.message === 'string') {
           message = errObj.message;
         }
@@ -68,6 +69,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Build error context for logging
     const errorContext: Record<string, unknown> = {
+      errorId,
       statusCode: status,
       path: request.url,
       method: request.method,
@@ -79,9 +81,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ...(request.headers['x-request-id']
         ? { requestId: request.headers['x-request-id'] }
         : {}),
-      // In dev environment, include stack trace
+      // In dev environment, include more error details
       ...(process.env.NODE_ENV === 'development' && exception instanceof Error
-        ? { stack: exception.stack }
+        ? {
+            stack: exception.stack,
+            name: exception.constructor.name,
+            // Add original exception if it's not an HttpException
+            ...(!(exception instanceof HttpException)
+              ? { originalError: exception.toString() }
+              : {}),
+          }
         : {}),
     };
 
@@ -90,12 +99,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Send response
     response.status(status).json({
+      errorId,
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       message,
       ...(error ? { error } : {}),
-      ...additionalProps, // Include additional properties
+      ...additionalProps,
     });
   }
 }
