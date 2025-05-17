@@ -19,10 +19,13 @@ async function bootstrap() {
     .setTitle('ERP API')
     .setDescription('ERP Backend API Documentation')
     .setVersion('1.0')
-    .addTag('auth')
-    .addTag('users')
-    .addTag('roles')
-    .addTag('permissions')
+    .addServer('http://localhost:3000', 'Development Server')
+    .addTag('app', 'Health Check')
+    .addTag('auth', 'Authentication and Authorization')
+    .addTag('permissions', 'Permission Management')
+    .addTag('roles', 'Role Management')
+    .addTag('students', 'Student Management')
+    .addTag('users', 'User Management')
     .addBearerAuth() // Adds Bearer authentication option
     .build();
 

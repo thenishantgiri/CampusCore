@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RequestContextModule } from './common/logger/request-context.module';
 import { LoggerModule } from './common/logger/logger.module';
+import { StudentModule } from './student/student.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LoggerModule } from './common/logger/logger.module';
     PermissionsModule,
     RequestContextModule,
     LoggerModule,
+    StudentModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy, PrismaService],

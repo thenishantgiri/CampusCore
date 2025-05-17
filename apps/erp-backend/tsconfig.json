@@ -21,6 +21,7 @@
       "generated/prisma": ["generated/prisma"],
       "generated/prisma/*": ["generated/prisma/*"],
       "src/*": ["src/*"]
-    }
+    },
+    "typeRoots": ["node_modules/@types", "src/types"]
   }
 }

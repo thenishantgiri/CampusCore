@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { RegisterDto } from 'src/auth/dto/register.dto';
 import { LoginDto } from 'src/auth/dto/login.dto';
+import { RequestContextService } from 'src/common/logger/request-context.service';
 
 // Manual mock for bcrypt
 jest.mock('bcrypt', () => ({
@@ -17,6 +18,7 @@ describe('AuthService', () => {
   let prisma: any;
   let jwtService: any;
   let logger: any;
+  let requestContext: any;
 
   beforeEach(() => {
     prisma = {
@@ -32,10 +34,20 @@ describe('AuthService', () => {
       warn: jest.fn(),
       auditLog: jest.fn(),
     };
+
+    requestContext = {
+      getContext: jest.fn().mockReturnValue({
+        userId: 'mock-user-id',
+        email: 'mock@example.com',
+        roleId: 'role-admin',
+      }),
+    };
+
     service = new AuthService(
       prisma,
       jwtService as JwtService,
       logger as LoggerService,
+      requestContext as RequestContextService,
     );
   });
 

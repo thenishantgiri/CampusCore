@@ -1,7 +1,5 @@
-// test/unit/common/http-exception.filter.spec.ts
 import { HttpExceptionFilter } from 'src/common/filters/http-exception.filter';
 import {
-  HttpException,
   HttpStatus,
   NotFoundException,
   BadRequestException,
@@ -76,6 +74,7 @@ describe('HttpExceptionFilter', () => {
         message,
         error: 'Not Found',
         timestamp: expect.any(String),
+        errorId: expect.any(String),
       }),
     );
 
@@ -86,6 +85,7 @@ describe('HttpExceptionFilter', () => {
         method: 'GET',
         timestamp: expect.any(String),
         error: 'Not Found',
+        errorId: expect.any(String),
       }),
       message,
     );
@@ -120,6 +120,7 @@ describe('HttpExceptionFilter', () => {
         error: 'Bad Request',
         details: ['Field1 is required', 'Field2 is invalid'],
         timestamp: expect.any(String),
+        errorId: expect.any(String),
       }),
     );
   });
@@ -145,8 +146,65 @@ describe('HttpExceptionFilter', () => {
     // Assert
     expect(mockResponse.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: 'Field1 is required, Field2 is invalid',
+        message: 'Multiple errors: Field1 is required; Field2 is invalid',
         error: 'Bad Request',
+        errorId: expect.any(String),
+      }),
+    );
+  });
+
+  it('should handle single item message arrays', () => {
+    // Arrange
+    const responseObj = {
+      message: ['Single validation error'],
+      error: 'Bad Request',
+    };
+    const exception = new BadRequestException(responseObj);
+
+    const mockResponse = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    const mockContext = createMockContext(exception, undefined, mockResponse);
+
+    // Act
+    filter.catch(exception, mockContext);
+
+    // Assert
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Single validation error',
+        error: 'Bad Request',
+        errorId: expect.any(String),
+      }),
+    );
+  });
+
+  it('should handle empty message arrays', () => {
+    // Arrange
+    const responseObj = {
+      message: [],
+      error: 'Bad Request',
+    };
+    const exception = new BadRequestException(responseObj);
+
+    const mockResponse = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    const mockContext = createMockContext(exception, undefined, mockResponse);
+
+    // Act
+    filter.catch(exception, mockContext);
+
+    // Assert
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Validation error',
+        error: 'Bad Request',
+        errorId: expect.any(String),
       }),
     );
   });
@@ -175,6 +233,7 @@ describe('HttpExceptionFilter', () => {
         path: '/test',
         message: 'Internal server error',
         timestamp: expect.any(String),
+        errorId: expect.any(String),
       }),
     );
   });
@@ -207,6 +266,7 @@ describe('HttpExceptionFilter', () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-123',
+        errorId: expect.any(String),
       }),
       expect.any(String),
     );
@@ -242,6 +302,7 @@ describe('HttpExceptionFilter', () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         requestId: 'request-123',
+        errorId: expect.any(String),
       }),
       expect.any(String),
     );
@@ -269,11 +330,56 @@ describe('HttpExceptionFilter', () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         stack: expect.stringContaining('Error: Development error'),
+        name: 'Error',
+        originalError: 'Error: Development error',
+        errorId: expect.any(String),
       }),
       expect.any(String),
     );
 
     // Cleanup
     process.env.NODE_ENV = originalEnv;
+  });
+
+  it('should handle invalid arguments host gracefully', () => {
+    // Arrange
+    const exception = new NotFoundException('Not found');
+    const invalidHost = null as any;
+
+    // Act & Assert - should not throw an error
+    expect(() => filter.catch(exception, invalidHost)).not.toThrow();
+
+    // Verify logger was called with error message
+    expect(logger.error).toHaveBeenCalledWith(
+      'Invalid arguments host provided to exception filter',
+    );
+  });
+
+  it('should handle HttpException with string response', () => {
+    // Arrange
+    const message = 'Simple string error';
+    const exception = new BadRequestException(message);
+
+    const mockResponse = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    const mockContext = createMockContext(exception, undefined, mockResponse);
+
+    // Act
+    filter.catch(exception, mockContext);
+
+    // Assert
+    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.BAD_REQUEST,
+        path: '/test',
+        message,
+        timestamp: expect.any(String),
+        errorId: expect.any(String),
+      }),
+    );
   });
 });

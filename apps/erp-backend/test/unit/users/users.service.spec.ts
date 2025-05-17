@@ -1,4 +1,3 @@
-// test/unit/auth/users/users.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from 'src/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
