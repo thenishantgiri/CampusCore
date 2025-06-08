@@ -34,10 +34,6 @@ export class CreateTeacherDto {
   @IsOptional()
   subjects?: string[];
 
-  @IsArray()
-  @IsOptional()
-  assignedClasses?: string[];
-
   @IsDateString()
   @IsOptional()
   joinedOn?: string;

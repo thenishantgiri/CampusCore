@@ -12,6 +12,8 @@ import { RequestContextModule } from './common/logger/request-context.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { StudentModule } from './student/student.module';
 import { TeacherModule } from './teachers/teacher.module';
+import { ClassModule } from './class/class.module';
+import { SectionModule } from './section/section.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { TeacherModule } from './teachers/teacher.module';
     LoggerModule,
     StudentModule,
     TeacherModule,
+    ClassModule,
+    SectionModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy, PrismaService],

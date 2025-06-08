@@ -154,6 +154,7 @@ exports.Prisma.StudentScalarFieldEnum = {
   photoUrl: 'photoUrl',
   emergencyContacts: 'emergencyContacts',
   userId: 'userId',
+  sectionId: 'sectionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -167,7 +168,6 @@ exports.Prisma.TeacherScalarFieldEnum = {
   designation: 'designation',
   departments: 'departments',
   subjects: 'subjects',
-  assignedClasses: 'assignedClasses',
   isActive: 'isActive',
   joinedOn: 'joinedOn',
   leftOn: 'leftOn',
@@ -191,6 +191,27 @@ exports.Prisma.AcademicYearScalarFieldEnum = {
   endDate: 'endDate',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ClassScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  displayName: 'displayName',
+  institutionId: 'institutionId',
+  academicYearId: 'academicYearId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.SectionScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  classId: 'classId',
+  teacherId: 'teacherId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -229,7 +250,9 @@ exports.Prisma.ModelName = {
   Student: 'Student',
   Teacher: 'Teacher',
   Institution: 'Institution',
-  AcademicYear: 'AcademicYear'
+  AcademicYear: 'AcademicYear',
+  Class: 'Class',
+  Section: 'Section'
 };
 
 /**

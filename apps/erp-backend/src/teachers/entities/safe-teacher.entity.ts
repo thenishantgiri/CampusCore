@@ -16,9 +16,6 @@ export class SafeTeacherEntity {
   @ApiProperty({ example: ['Algebra', 'Geometry'] })
   subjects: string[];
 
-  @ApiProperty({ example: ['Class 10A', 'Class 10B'] })
-  assignedClasses: string[];
-
   @ApiProperty({ example: '2020-08-15T00:00:00.000Z', nullable: true })
   joinedOn: string | null;
 
@@ -48,4 +45,28 @@ export class SafeTeacherEntity {
     name: string;
     email: string;
   };
+
+  @ApiProperty({
+    type: () => [Object],
+    description: 'List of sections taught by the teacher',
+    example: [
+      {
+        id: 'sec-uuid',
+        name: 'A',
+        class: {
+          id: 'class-uuid',
+          name: 'Grade 6',
+        },
+      },
+    ],
+    required: false,
+  })
+  sections?: {
+    id: string;
+    name: string;
+    class: {
+      id: string;
+      name: string;
+    };
+  }[];
 }

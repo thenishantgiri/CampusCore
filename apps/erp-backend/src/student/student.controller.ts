@@ -54,14 +54,14 @@ export class StudentController {
     description: 'Payload to create a student profile',
     schema: {
       example: {
-        userId: '17a53396-930b-4876-81ec-f1f015ffbc42',
+        userId: 'uuid',
+        sectionId: 'uuid',
         firstName: 'Alice',
         lastName: 'Smith',
         dateOfBirth: '2008-04-12T00:00:00.000Z',
         photoUrl: 'https://cdn.example.com/photos/alice.jpg',
         emergencyContacts: [
           { name: 'Bob Smith', relation: 'Father', phone: '+1234567890' },
-          { name: 'Carol Smith', relation: 'Mother', phone: '+0987654321' },
         ],
       },
     },
