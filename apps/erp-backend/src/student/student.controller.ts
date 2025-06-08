@@ -39,7 +39,7 @@ import { FindStudentsQueryDto } from './dto/find-students.query.dto';
 import { Request } from 'express';
 import { UserRole } from 'src/auth/decorators/user-role.decorator';
 
-@ApiTags('students')
+@ApiTags('Student')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Controller('students')

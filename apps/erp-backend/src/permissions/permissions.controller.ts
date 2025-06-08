@@ -31,7 +31,7 @@ import { Permission } from 'src/auth/decorators/permission.decorator';
 import { PERMISSIONS } from 'src/auth/constants/permissions';
 import { PermissionEntity } from './entities/permission.entity';
 
-@ApiTags('permissions')
+@ApiTags('Permission')
 @ApiBearerAuth()
 @Controller('permissions')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)

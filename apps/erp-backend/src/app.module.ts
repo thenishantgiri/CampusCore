@@ -14,6 +14,8 @@ import { StudentModule } from './student/student.module';
 import { TeacherModule } from './teachers/teacher.module';
 import { ClassModule } from './class/class.module';
 import { SectionModule } from './section/section.module';
+import { SubjectModule } from './subject/subject.module';
+import { CourseModule } from './course/course.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { SectionModule } from './section/section.module';
     TeacherModule,
     ClassModule,
     SectionModule,
+    SubjectModule,
+    CourseModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy, PrismaService],

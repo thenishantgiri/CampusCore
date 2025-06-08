@@ -34,7 +34,7 @@ import { PERMISSIONS } from 'src/auth/constants/permissions';
 import { SafeUserEntity } from '../auth/entities/safe-user.entity';
 import { FindUsersQueryDto } from './dto/find-users.query.dto';
 
-@ApiTags('users')
+@ApiTags('User')
 @ApiBearerAuth()
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)

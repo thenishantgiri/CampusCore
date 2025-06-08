@@ -33,7 +33,7 @@ import { RbacTestResponseDto } from './dto/rbac-test-response.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { SafeUserEntity } from './entities/safe-user.entity';
 
-@ApiTags('auth')
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}

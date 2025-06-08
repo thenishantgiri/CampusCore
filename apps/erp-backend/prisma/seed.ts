@@ -177,6 +177,70 @@ async function main() {
     },
   });
 
+  console.log('📚 Creating subjects');
+  const algebra = await prisma.subject.create({
+    data: {
+      name: 'Algebra',
+      code: 'ALG101',
+      institutionId: institution.id,
+      academicYearId: academicYear.id,
+      classId: classObj.id,
+    },
+  });
+
+  const geometry = await prisma.subject.create({
+    data: {
+      name: 'Geometry',
+      code: 'GEO101',
+      institutionId: institution.id,
+      academicYearId: academicYear.id,
+      classId: classObj.id,
+    },
+  });
+
+  console.log('🎓 Creating courses');
+  const [course1, course2] = await Promise.all([
+    prisma.course.create({
+      data: {
+        title: 'Intro to Algebra',
+        code: 'CRS_ALG_01',
+        description: 'Introduction to algebraic concepts',
+        credits: 3,
+        institutionId: institution.id,
+        academicYearId: academicYear.id,
+      },
+    }),
+    prisma.course.create({
+      data: {
+        title: 'Foundations of Geometry',
+        code: 'CRS_GEO_01',
+        description: 'Basic principles of geometry',
+        credits: 2,
+        institutionId: institution.id,
+        academicYearId: academicYear.id,
+      },
+    }),
+  ]);
+
+  // Link subjects to courses
+  await prisma.subject.update({
+    where: { id: algebra.id },
+    data: {
+      courses: {
+        connect: [{ id: course1.id }],
+      },
+    },
+  });
+
+  await prisma.subject.update({
+    where: { id: geometry.id },
+    data: {
+      courses: {
+        connect: [{ id: course2.id }],
+      },
+    },
+  });
+
   // Insert teacher and student users and link them to the section
   console.log('👩‍🏫 Creating teacher user');
   const teacherUser = await prisma.user.create({
@@ -196,8 +260,7 @@ async function main() {
       academicYearId: academicYear.id,
       employeeCode: 'TCH001',
       designation: 'Math Teacher',
-      departments: ['Mathematics'],
-      subjects: ['Algebra', 'Geometry'],
+      // subjects will not be created here (already created above)
     },
   });
 

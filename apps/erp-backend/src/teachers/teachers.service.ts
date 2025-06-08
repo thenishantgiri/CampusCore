@@ -26,7 +26,7 @@ export class TeacherService {
     const ctx = this.requestContext.getContext();
     const log = this.logger.child({ method: 'createTeacher' });
 
-    log.info('Creating teacher', { actor: ctx.userId, dto });
+    log.info('Creating teacher', { actor: ctx.userId, email: ctx.email, dto });
     try {
       const teacher = await this.prisma.teacher.create({
         data: {
@@ -35,8 +35,9 @@ export class TeacherService {
           institution: { connect: { id: dto.institutionId } },
           academicYear: { connect: { id: dto.academicYearId } },
           designation: dto.designation ?? null,
-          departments: dto.departments ?? [],
-          subjects: dto.subjects ?? [],
+          subjects: dto.subjects
+            ? { connect: dto.subjects.map((id) => ({ id })) }
+            : undefined,
           joinedOn: dto.joinedOn ? new Date(dto.joinedOn) : null,
           leftOn: dto.leftOn ? new Date(dto.leftOn) : null,
           isActive: dto.isActive ?? true,
@@ -52,11 +53,20 @@ export class TeacherService {
       });
 
       if (err?.code === 'P2002') {
+        log.warn('Duplicate employee code detected', {
+          actor: ctx.userId,
+          email: ctx.email,
+          dto,
+        });
         throw new BadRequestException(
           'A teacher with this employee code already exists.',
         );
       }
       if (err?.code === 'P2003') {
+        log.warn(
+          'Referenced user, institution, or academic year does not exist',
+          { actor: ctx.userId, email: ctx.email, dto },
+        );
         throw new BadRequestException(
           'Referenced user, institution, or academic year does not exist.',
         );
@@ -73,7 +83,6 @@ export class TeacherService {
       page = 1,
       limit = 10,
       search,
-      department,
       isActive,
       joinedOnStart,
       joinedOnEnd,
@@ -84,10 +93,10 @@ export class TeacherService {
 
     log.info('Fetching all teachers with filters', {
       actor: ctx.userId,
+      email: ctx.email,
       page,
       limit,
       search,
-      department,
       isActive,
       joinedOnRange:
         joinedOnStart && joinedOnEnd
@@ -107,10 +116,6 @@ export class TeacherService {
           { user: { name: { contains: search, mode: 'insensitive' } } },
           { user: { email: { contains: search, mode: 'insensitive' } } },
         ];
-      }
-
-      if (department) {
-        where.departments = { has: department };
       }
 
       if (isActive !== undefined) {
@@ -153,13 +158,15 @@ export class TeacherService {
               },
             },
           },
+          subjects: { select: { id: true, name: true, code: true } },
+          courses: { select: { id: true, title: true, code: true } },
         },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       });
 
-      const pages = Math.ceil(total / limit);
+      const pages = Math.max(1, Math.ceil(total / limit));
 
       log.info(
         `Successfully retrieved ${teachers.length} teachers (page ${page} of ${pages}, total: ${total})`,
@@ -170,8 +177,18 @@ export class TeacherService {
         id: teacher.id,
         employeeCode: teacher.employeeCode,
         designation: teacher.designation,
-        departments: teacher.departments as string[],
-        subjects: teacher.subjects as string[],
+        subjects:
+          teacher.subjects?.map((s) => ({
+            id: s.id,
+            name: s.name,
+            code: s.code,
+          })) ?? [],
+        courses:
+          teacher.courses?.map((c) => ({
+            id: c.id,
+            title: c.title,
+            code: c.code,
+          })) ?? [],
         joinedOn: teacher.joinedOn?.toISOString() || null,
         leftOn: teacher.leftOn?.toISOString() || null,
         isActive: teacher.isActive,
@@ -219,7 +236,11 @@ export class TeacherService {
     const ctx = this.requestContext.getContext();
     const log = this.logger.child({ method: 'getTeacherById' });
 
-    log.info('Fetching teacher by ID', { actor: ctx.userId, teacherId: id });
+    log.info('Fetching teacher by ID', {
+      actor: ctx.userId,
+      email: ctx.email,
+      teacherId: id,
+    });
     try {
       const teacher = await this.prisma.teacher.findUnique({
         where: { id },
@@ -236,6 +257,8 @@ export class TeacherService {
               },
             },
           },
+          subjects: { select: { id: true, name: true, code: true } },
+          courses: { select: { id: true, title: true, code: true } },
         },
       });
 
@@ -263,8 +286,18 @@ export class TeacherService {
         id: teacher.id,
         employeeCode: teacher.employeeCode,
         designation: teacher.designation,
-        departments: teacher.departments as string[],
-        subjects: teacher.subjects as string[],
+        subjects:
+          teacher.subjects?.map((s) => ({
+            id: s.id,
+            name: s.name,
+            code: s.code,
+          })) ?? [],
+        courses:
+          teacher.courses?.map((c) => ({
+            id: c.id,
+            title: c.title,
+            code: c.code,
+          })) ?? [],
         joinedOn: teacher.joinedOn?.toISOString() || null,
         leftOn: teacher.leftOn?.toISOString() || null,
         isActive: teacher.isActive,
@@ -308,10 +341,15 @@ export class TeacherService {
     const ctx = this.requestContext.getContext();
     const log = this.logger.child({ method: 'updateTeacher' });
 
-    log.info('Updating teacher', { actor: ctx.userId, teacherId: id, dto });
+    log.info('Updating teacher', {
+      actor: ctx.userId,
+      email: ctx.email,
+      teacherId: id,
+      dto,
+    });
     try {
-      // Ensure exists first
-      await this.getTeacherById(id, userId, userRole);
+      // Ensure exists first and reuse
+      const teacher = await this.getTeacherById(id, userId, userRole);
 
       const updated = await this.prisma.teacher.update({
         where: { id },
@@ -322,10 +360,11 @@ export class TeacherService {
           ...(dto.designation !== undefined && {
             designation: dto.designation,
           }),
-          ...(dto.departments !== undefined && {
-            departments: dto.departments,
+          ...(dto.subjects !== undefined && {
+            subjects: {
+              set: dto.subjects.map((id) => ({ id })),
+            },
           }),
-          ...(dto.subjects !== undefined && { subjects: dto.subjects }),
           ...(dto.joinedOn !== undefined && {
             joinedOn: dto.joinedOn ? new Date(dto.joinedOn) : null,
           }),
@@ -345,19 +384,43 @@ export class TeacherService {
       log.info('Teacher updated successfully', { teacherId: id });
       return updated;
     } catch (err: any) {
-      if (err instanceof NotFoundException || err instanceof ForbiddenException)
+      if (
+        err instanceof NotFoundException ||
+        err instanceof ForbiddenException
+      ) {
+        log.warn('Known exception during updateTeacher', {
+          error: err.message,
+          actor: ctx.userId,
+          email: ctx.email,
+          teacherId: id,
+          dto,
+        });
         throw err;
+      }
       log.error('Error updating teacher', {
         error: err instanceof Error ? err.message : err,
         code: err?.code,
+        actor: ctx.userId,
+        email: ctx.email,
+        teacherId: id,
+        dto,
       });
 
       if (err?.code === 'P2002') {
+        log.warn('Duplicate employee code detected during update', {
+          actor: ctx.userId,
+          email: ctx.email,
+          dto,
+        });
         throw new BadRequestException(
           'A teacher with this employee code already exists.',
         );
       }
       if (err?.code === 'P2003') {
+        log.warn(
+          'Referenced institution or academic year does not exist during update',
+          { actor: ctx.userId, email: ctx.email, dto },
+        );
         throw new BadRequestException(
           'Referenced institution or academic year does not exist.',
         );
@@ -370,19 +433,36 @@ export class TeacherService {
     const ctx = this.requestContext.getContext();
     const log = this.logger.child({ method: 'deleteTeacher' });
 
-    log.info('Deleting teacher', { actor: ctx.userId, teacherId: id });
+    log.info('Deleting teacher', {
+      actor: ctx.userId,
+      email: ctx.email,
+      teacherId: id,
+    });
     try {
-      // Ensure exists first
-      await this.getTeacherById(id, userId, userRole);
+      // Ensure exists first and reuse
+      const teacher = await this.getTeacherById(id, userId, userRole);
 
       const deleted = await this.prisma.teacher.delete({ where: { id } });
       log.info('Teacher deleted successfully', { teacherId: id });
       return deleted;
     } catch (err: any) {
-      if (err instanceof NotFoundException || err instanceof ForbiddenException)
+      if (
+        err instanceof NotFoundException ||
+        err instanceof ForbiddenException
+      ) {
+        log.warn('Known exception during deleteTeacher', {
+          error: err.message,
+          actor: ctx.userId,
+          email: ctx.email,
+          teacherId: id,
+        });
         throw err;
+      }
       log.error('Error deleting teacher', {
         error: err instanceof Error ? err.message : err,
+        actor: ctx.userId,
+        email: ctx.email,
+        teacherId: id,
       });
       throw new InternalServerErrorException('Failed to delete teacher');
     }
