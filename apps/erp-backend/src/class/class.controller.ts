@@ -25,7 +25,7 @@ import {
 } from '@nestjs/swagger';
 import { Role } from 'src/auth/constants/roles.enum';
 
-@ApiTags('classes')
+@ApiTags('Class')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('classes')

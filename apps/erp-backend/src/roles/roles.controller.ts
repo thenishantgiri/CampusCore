@@ -35,7 +35,7 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { PermissionsGuard } from 'src/auth/guards/permissions.guard';
 import { RoleEntity } from './entities/role.entity';
 
-@ApiTags('roles')
+@ApiTags('Role')
 @ApiBearerAuth()
 @Controller('roles')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)

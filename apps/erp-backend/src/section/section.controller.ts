@@ -16,7 +16,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { Role } from 'src/auth/constants/roles.enum';
 
-@ApiTags('sections')
+@ApiTags('Section')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('sections')

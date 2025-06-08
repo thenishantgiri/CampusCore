@@ -166,8 +166,6 @@ exports.Prisma.TeacherScalarFieldEnum = {
   academicYearId: 'academicYearId',
   employeeCode: 'employeeCode',
   designation: 'designation',
-  departments: 'departments',
-  subjects: 'subjects',
   isActive: 'isActive',
   joinedOn: 'joinedOn',
   leftOn: 'leftOn',
@@ -214,6 +212,30 @@ exports.Prisma.SectionScalarFieldEnum = {
   deletedAt: 'deletedAt'
 };
 
+exports.Prisma.SubjectScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  code: 'code',
+  description: 'description',
+  institutionId: 'institutionId',
+  academicYearId: 'academicYearId',
+  classId: 'classId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CourseScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  code: 'code',
+  description: 'description',
+  credits: 'credits',
+  institutionId: 'institutionId',
+  academicYearId: 'academicYearId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -252,7 +274,9 @@ exports.Prisma.ModelName = {
   Institution: 'Institution',
   AcademicYear: 'AcademicYear',
   Class: 'Class',
-  Section: 'Section'
+  Section: 'Section',
+  Subject: 'Subject',
+  Course: 'Course'
 };
 
 /**

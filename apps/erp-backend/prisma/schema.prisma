@@ -79,8 +79,8 @@ model Teacher {
   academicYearId String
   employeeCode   String       @unique
   designation    String?
-  departments    String[]
-  subjects       String[]
+  subjects       Subject[]    @relation("SubjectTeachers")
+  courses        Course[]     @relation("CourseTeachers")
   isActive       Boolean      @default(true)
   joinedOn       DateTime?
   leftOn         DateTime?
@@ -101,6 +101,8 @@ model Institution {
   // Relations
   teachers Teacher[]
   classes  Class[]
+  Subject  Subject[]
+  Course   Course[]
 }
 
 model AcademicYear {
@@ -115,6 +117,8 @@ model AcademicYear {
   // Relations
   teachers Teacher[]
   classes  Class[]
+  Subject  Subject[]
+  Course   Course[]
 }
 
 model Class {
@@ -130,6 +134,7 @@ model Class {
   institution  Institution  @relation(fields: [institutionId], references: [id])
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
   sections     Section[]
+  Subject      Subject[]
 
   @@unique([name, institutionId, academicYearId])
 }
@@ -148,4 +153,43 @@ model Section {
   students Student[]
 
   @@unique([name, classId])
+}
+
+model Subject {
+  id             String  @id @default(uuid())
+  name           String
+  code           String  @unique
+  description    String?
+  institutionId  String
+  academicYearId String
+  classId        String
+
+  institution  Institution  @relation(fields: [institutionId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  class        Class        @relation(fields: [classId], references: [id])
+  teachers     Teacher[]    @relation("SubjectTeachers")
+  courses      Course[]     @relation("SubjectCourses")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, classId, academicYearId])
+}
+
+model Course {
+  id             String  @id @default(uuid())
+  title          String
+  code           String  @unique
+  description    String?
+  credits        Int?
+  institutionId  String
+  academicYearId String
+
+  institution  Institution  @relation(fields: [institutionId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  teachers     Teacher[]    @relation("CourseTeachers")
+  subjects     Subject[]    @relation("SubjectCourses")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
