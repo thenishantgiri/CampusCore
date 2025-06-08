@@ -19,6 +19,9 @@ export class CreateStudentDto {
   @IsUUID()
   userId: string;
 
+  @IsUUID()
+  sectionId: string;
+
   @IsString()
   firstName: string;
 

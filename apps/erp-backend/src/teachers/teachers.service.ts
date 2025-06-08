@@ -37,7 +37,6 @@ export class TeacherService {
           designation: dto.designation ?? null,
           departments: dto.departments ?? [],
           subjects: dto.subjects ?? [],
-          assignedClasses: dto.assignedClasses ?? [],
           joinedOn: dto.joinedOn ? new Date(dto.joinedOn) : null,
           leftOn: dto.leftOn ? new Date(dto.leftOn) : null,
           isActive: dto.isActive ?? true,
@@ -146,6 +145,12 @@ export class TeacherService {
             select: {
               name: true,
               email: true,
+              sections: {
+                where: { deletedAt: null },
+                include: {
+                  class: true,
+                },
+              },
             },
           },
         },
@@ -167,7 +172,6 @@ export class TeacherService {
         designation: teacher.designation,
         departments: teacher.departments as string[],
         subjects: teacher.subjects as string[],
-        assignedClasses: teacher.assignedClasses as string[],
         joinedOn: teacher.joinedOn?.toISOString() || null,
         leftOn: teacher.leftOn?.toISOString() || null,
         isActive: teacher.isActive,
@@ -182,6 +186,15 @@ export class TeacherService {
               email: teacher.user.email,
             }
           : undefined,
+        sections:
+          teacher.user?.sections?.map((section) => ({
+            id: section.id,
+            name: section.name,
+            class: {
+              id: section.class.id,
+              name: section.class.name,
+            },
+          })) ?? [],
       }));
 
       return {
@@ -215,6 +228,12 @@ export class TeacherService {
             select: {
               name: true,
               email: true,
+              sections: {
+                where: { deletedAt: null },
+                include: {
+                  class: true,
+                },
+              },
             },
           },
         },
@@ -246,7 +265,6 @@ export class TeacherService {
         designation: teacher.designation,
         departments: teacher.departments as string[],
         subjects: teacher.subjects as string[],
-        assignedClasses: teacher.assignedClasses as string[],
         joinedOn: teacher.joinedOn?.toISOString() || null,
         leftOn: teacher.leftOn?.toISOString() || null,
         isActive: teacher.isActive,
@@ -261,6 +279,15 @@ export class TeacherService {
               email: teacher.user.email,
             }
           : undefined,
+        sections:
+          teacher.user?.sections?.map((section) => ({
+            id: section.id,
+            name: section.name,
+            class: {
+              id: section.class.id,
+              name: section.class.name,
+            },
+          })) ?? [],
       };
     } catch (err: any) {
       if (err instanceof NotFoundException || err instanceof ForbiddenException)
@@ -299,9 +326,6 @@ export class TeacherService {
             departments: dto.departments,
           }),
           ...(dto.subjects !== undefined && { subjects: dto.subjects }),
-          ...(dto.assignedClasses !== undefined && {
-            assignedClasses: dto.assignedClasses,
-          }),
           ...(dto.joinedOn !== undefined && {
             joinedOn: dto.joinedOn ? new Date(dto.joinedOn) : null,
           }),

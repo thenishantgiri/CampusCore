@@ -37,6 +37,7 @@ export class StudentService {
           user: { connect: { id: dto.userId } },
           emergencyContacts:
             dto.emergencyContacts as unknown as Prisma.InputJsonValue,
+          section: { connect: { id: dto.sectionId } },
         },
       });
       log.info('Student created successfully', { studentId: student.id });
@@ -130,6 +131,11 @@ export class StudentService {
               email: true,
             },
           },
+          section: {
+            include: {
+              class: true,
+            },
+          },
         },
         skip,
         take: limit,
@@ -152,12 +158,25 @@ export class StudentService {
         photoUrl: student.photoUrl,
         emergencyContacts: student.emergencyContacts as any,
         userId: student.userId,
+        sectionId: student.sectionId,
         createdAt: student.createdAt.toISOString(),
         updatedAt: student.updatedAt.toISOString(),
         user: student.user
           ? {
               name: student.user.name,
               email: student.user.email,
+            }
+          : undefined,
+        section: student.section
+          ? {
+              id: student.section.id,
+              name: student.section.name,
+              class: student.section.class
+                ? {
+                    id: student.section.class.id,
+                    name: student.section.class.name,
+                  }
+                : undefined,
             }
           : undefined,
       }));
@@ -195,6 +214,11 @@ export class StudentService {
               email: true,
             },
           },
+          section: {
+            include: {
+              class: true,
+            },
+          },
         },
       });
 
@@ -226,12 +250,25 @@ export class StudentService {
         photoUrl: student.photoUrl,
         emergencyContacts: student.emergencyContacts as any,
         userId: student.userId,
+        sectionId: student.sectionId,
         createdAt: student.createdAt.toISOString(),
         updatedAt: student.updatedAt.toISOString(),
         user: student.user
           ? {
               name: student.user.name,
               email: student.user.email,
+            }
+          : undefined,
+        section: student.section
+          ? {
+              id: student.section.id,
+              name: student.section.name,
+              class: student.section.class
+                ? {
+                    id: student.section.class.id,
+                    name: student.section.class.name,
+                  }
+                : undefined,
             }
           : undefined,
       };
@@ -275,6 +312,9 @@ export class StudentService {
           ...(dto.emergencyContacts && {
             emergencyContacts:
               dto.emergencyContacts as unknown as Prisma.InputJsonValue,
+          }),
+          ...(dto.sectionId && {
+            section: { connect: { id: dto.sectionId } },
           }),
         },
       });

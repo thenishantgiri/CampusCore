@@ -42,11 +42,16 @@ export class SafeStudentEntity {
   emergencyContacts: Array<{ name: string; relation: string; phone: string }>;
 
   @ApiProperty({
+    description: 'Section ID the student belongs to',
+    example: 'd4e5f6g7-h8i9-j0k1-l2m3-n4o5p6q7r8s9',
+  })
+  sectionId: string;
+
+  @ApiProperty({
     description: 'Associated user ID',
     example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   })
   userId: string;
-
   @ApiProperty({
     description: 'Record creation timestamp (ISO string)',
     example: '2025-05-08T12:34:56.789Z',

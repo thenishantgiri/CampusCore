@@ -61,7 +61,6 @@ export class TeacherController {
         designation: 'Senior Mathematics Teacher',
         departments: ['Mathematics', 'Science'],
         subjects: ['Algebra', 'Geometry', 'Physics'],
-        assignedClasses: ['Class 10A', 'Class 10B', 'Class 11 Science'],
         joinedOn: '2020-08-15T00:00:00.000Z',
         isActive: true,
       },

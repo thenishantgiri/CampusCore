@@ -91,7 +91,7 @@ const ROLES = [
 async function main() {
   console.log('🗑  Clearing tables');
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "Permission", "Role", "User" RESTART IDENTITY CASCADE',
+    'TRUNCATE "Student", "Teacher", "AcademicYear", "Institution", "Section", "Class", "Permission", "Role", "User" RESTART IDENTITY CASCADE',
   );
 
   console.log('🌱 Seeding roles');
@@ -138,6 +138,99 @@ async function main() {
       password: passwordHash,
       name: 'Admin User',
       roleId: 'role-admin',
+    },
+  });
+
+  console.log('🏫 Creating default institution');
+  const institution = await prisma.institution.create({
+    data: {
+      name: 'Default Institution',
+      type: 'School',
+      address: '123 Main St',
+    },
+  });
+
+  console.log('📅 Creating academic year');
+  const academicYear = await prisma.academicYear.create({
+    data: {
+      label: '2024-25',
+      startDate: new Date('2024-04-01'),
+      endDate: new Date('2025-03-31'),
+    },
+  });
+
+  console.log('🏫 Creating class');
+  const classObj = await prisma.class.create({
+    data: {
+      name: 'Grade 6',
+      displayName: '6th Grade',
+      institutionId: institution.id,
+      academicYearId: academicYear.id,
+    },
+  });
+
+  console.log('📘 Creating section');
+  const section = await prisma.section.create({
+    data: {
+      name: 'A',
+      classId: classObj.id,
+    },
+  });
+
+  // Insert teacher and student users and link them to the section
+  console.log('👩‍🏫 Creating teacher user');
+  const teacherUser = await prisma.user.create({
+    data: {
+      email: 'teacher1@erp.local',
+      password: passwordHash,
+      name: 'John Teacher',
+      roleId: 'role-teacher',
+    },
+  });
+
+  console.log('👨‍🏫 Creating teacher profile');
+  await prisma.teacher.create({
+    data: {
+      userId: teacherUser.id,
+      institutionId: institution.id,
+      academicYearId: academicYear.id,
+      employeeCode: 'TCH001',
+      designation: 'Math Teacher',
+      departments: ['Mathematics'],
+      subjects: ['Algebra', 'Geometry'],
+    },
+  });
+
+  console.log('👩‍🎓 Creating student user');
+  const studentUser = await prisma.user.create({
+    data: {
+      email: 'student1@erp.local',
+      password: passwordHash,
+      name: 'Alice Student',
+      roleId: 'role-student',
+    },
+  });
+
+  console.log('👩‍🎓 Creating student profile');
+  await prisma.student.create({
+    data: {
+      userId: studentUser.id,
+      firstName: 'Alice',
+      lastName: 'Smith',
+      dateOfBirth: new Date('2008-04-12'),
+      photoUrl: null,
+      emergencyContacts: {
+        createMany: {
+          data: [
+            {
+              name: 'Bob Smith',
+              relation: 'Father',
+              phone: '+1234567890',
+            },
+          ],
+        },
+      },
+      sectionId: section.id,
     },
   });
 
