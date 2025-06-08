@@ -25,6 +25,7 @@ async function bootstrap() {
     .addTag('permissions', 'Permission Management')
     .addTag('roles', 'Role Management')
     .addTag('students', 'Student Management')
+    .addTag('teachers', 'Teacher Management')
     .addTag('users', 'User Management')
     .addBearerAuth() // Adds Bearer authentication option
     .build();

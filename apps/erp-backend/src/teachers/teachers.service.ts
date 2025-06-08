@@ -1,0 +1,366 @@
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { LoggerService } from 'src/common/logger/logger.service';
+import { RequestContextService } from 'src/common/logger/request-context.service';
+import { Role } from 'src/auth/constants/roles.enum';
+import { Prisma } from 'generated/prisma';
+import { CreateTeacherDto } from './dto/create-teacher.dto';
+import { UpdateTeacherDto } from './dto/update-teacher.dto';
+import { FindTeachersQueryDto } from './dto/find-teachers.query.dto';
+
+@Injectable()
+export class TeacherService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
+    private readonly requestContext: RequestContextService,
+  ) {}
+
+  async createTeacher(dto: CreateTeacherDto) {
+    const ctx = this.requestContext.getContext();
+    const log = this.logger.child({ method: 'createTeacher' });
+
+    log.info('Creating teacher', { actor: ctx.userId, dto });
+    try {
+      const teacher = await this.prisma.teacher.create({
+        data: {
+          user: { connect: { id: dto.userId } },
+          employeeCode: dto.employeeCode,
+          institution: { connect: { id: dto.institutionId } },
+          academicYear: { connect: { id: dto.academicYearId } },
+          designation: dto.designation ?? null,
+          departments: dto.departments ?? [],
+          subjects: dto.subjects ?? [],
+          assignedClasses: dto.assignedClasses ?? [],
+          joinedOn: dto.joinedOn ? new Date(dto.joinedOn) : null,
+          leftOn: dto.leftOn ? new Date(dto.leftOn) : null,
+          isActive: dto.isActive ?? true,
+        },
+      });
+      log.info('Teacher created successfully', { teacherId: teacher.id });
+      return teacher;
+    } catch (err: any) {
+      log.error('Error creating teacher', {
+        error: err instanceof Error ? err.message : err,
+        code: err?.code,
+        name: err?.name,
+      });
+
+      if (err?.code === 'P2002') {
+        throw new BadRequestException(
+          'A teacher with this employee code already exists.',
+        );
+      }
+      if (err?.code === 'P2003') {
+        throw new BadRequestException(
+          'Referenced user, institution, or academic year does not exist.',
+        );
+      }
+      throw new InternalServerErrorException('Failed to create teacher');
+    }
+  }
+
+  async getAllTeachers(query: FindTeachersQueryDto) {
+    const ctx = this.requestContext.getContext();
+    const log = this.logger.child({ method: 'getAllTeachers' });
+
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      department,
+      isActive,
+      joinedOnStart,
+      joinedOnEnd,
+      institutionId,
+      academicYearId,
+    } = query;
+    const skip = (page - 1) * limit;
+
+    log.info('Fetching all teachers with filters', {
+      actor: ctx.userId,
+      page,
+      limit,
+      search,
+      department,
+      isActive,
+      joinedOnRange:
+        joinedOnStart && joinedOnEnd
+          ? `${joinedOnStart} to ${joinedOnEnd}`
+          : undefined,
+      institutionId,
+      academicYearId,
+    });
+
+    try {
+      const where: Prisma.TeacherWhereInput = {};
+
+      if (search) {
+        where.OR = [
+          { employeeCode: { contains: search, mode: 'insensitive' } },
+          { designation: { contains: search, mode: 'insensitive' } },
+          { user: { name: { contains: search, mode: 'insensitive' } } },
+          { user: { email: { contains: search, mode: 'insensitive' } } },
+        ];
+      }
+
+      if (department) {
+        where.departments = { has: department };
+      }
+
+      if (isActive !== undefined) {
+        where.isActive = isActive;
+      }
+
+      if (institutionId) {
+        where.institutionId = institutionId;
+      }
+
+      if (academicYearId) {
+        where.academicYearId = academicYearId;
+      }
+
+      if (joinedOnStart && joinedOnEnd) {
+        where.joinedOn = {
+          gte: new Date(joinedOnStart),
+          lte: new Date(joinedOnEnd),
+        };
+      } else if (joinedOnStart) {
+        where.joinedOn = { gte: new Date(joinedOnStart) };
+      } else if (joinedOnEnd) {
+        where.joinedOn = { lte: new Date(joinedOnEnd) };
+      }
+
+      const total = await this.prisma.teacher.count({ where });
+
+      const teachers = await this.prisma.teacher.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const pages = Math.ceil(total / limit);
+
+      log.info(
+        `Successfully retrieved ${teachers.length} teachers (page ${page} of ${pages}, total: ${total})`,
+      );
+
+      // Map to SafeTeacherEntity format
+      const safeTeachers = teachers.map((teacher) => ({
+        id: teacher.id,
+        employeeCode: teacher.employeeCode,
+        designation: teacher.designation,
+        departments: teacher.departments as string[],
+        subjects: teacher.subjects as string[],
+        assignedClasses: teacher.assignedClasses as string[],
+        joinedOn: teacher.joinedOn?.toISOString() || null,
+        leftOn: teacher.leftOn?.toISOString() || null,
+        isActive: teacher.isActive,
+        userId: teacher.userId,
+        institutionId: teacher.institutionId,
+        academicYearId: teacher.academicYearId,
+        createdAt: teacher.createdAt.toISOString(),
+        updatedAt: teacher.updatedAt.toISOString(),
+        user: teacher.user
+          ? {
+              name: teacher.user.name,
+              email: teacher.user.email,
+            }
+          : undefined,
+      }));
+
+      return {
+        data: safeTeachers,
+        meta: {
+          total,
+          page,
+          limit,
+          pages,
+        },
+      };
+    } catch (err: any) {
+      log.error('Error fetching teachers', {
+        error: err instanceof Error ? err.message : err,
+        query,
+      });
+      throw new InternalServerErrorException('Failed to fetch teachers');
+    }
+  }
+
+  async getTeacherById(id: string, userId?: string, userRole?: Role) {
+    const ctx = this.requestContext.getContext();
+    const log = this.logger.child({ method: 'getTeacherById' });
+
+    log.info('Fetching teacher by ID', { actor: ctx.userId, teacherId: id });
+    try {
+      const teacher = await this.prisma.teacher.findUnique({
+        where: { id },
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!teacher) {
+        log.warn('Teacher not found', { teacherId: id });
+        throw new NotFoundException('Teacher not found');
+      }
+
+      // Access control: Teacher role can only access their own profile
+      if (userRole === Role.TEACHER && teacher.userId !== userId) {
+        log.warn('Teacher attempted to access another teacher profile', {
+          actorId: userId,
+          teacherId: id,
+          teacherUserId: teacher.userId,
+        });
+        throw new ForbiddenException(
+          'You can only access your own teacher profile',
+        );
+      }
+
+      log.info('Teacher retrieved', { teacherId: id });
+
+      // Map to SafeTeacherEntity format
+      return {
+        id: teacher.id,
+        employeeCode: teacher.employeeCode,
+        designation: teacher.designation,
+        departments: teacher.departments as string[],
+        subjects: teacher.subjects as string[],
+        assignedClasses: teacher.assignedClasses as string[],
+        joinedOn: teacher.joinedOn?.toISOString() || null,
+        leftOn: teacher.leftOn?.toISOString() || null,
+        isActive: teacher.isActive,
+        userId: teacher.userId,
+        institutionId: teacher.institutionId,
+        academicYearId: teacher.academicYearId,
+        createdAt: teacher.createdAt.toISOString(),
+        updatedAt: teacher.updatedAt.toISOString(),
+        user: teacher.user
+          ? {
+              name: teacher.user.name,
+              email: teacher.user.email,
+            }
+          : undefined,
+      };
+    } catch (err: any) {
+      if (err instanceof NotFoundException || err instanceof ForbiddenException)
+        throw err;
+      log.error('Error fetching teacher', {
+        error: err instanceof Error ? err.message : err,
+      });
+      throw new InternalServerErrorException('Failed to fetch teacher');
+    }
+  }
+
+  async updateTeacher(
+    id: string,
+    dto: UpdateTeacherDto,
+    userId?: string,
+    userRole?: Role,
+  ) {
+    const ctx = this.requestContext.getContext();
+    const log = this.logger.child({ method: 'updateTeacher' });
+
+    log.info('Updating teacher', { actor: ctx.userId, teacherId: id, dto });
+    try {
+      // Ensure exists first
+      await this.getTeacherById(id, userId, userRole);
+
+      const updated = await this.prisma.teacher.update({
+        where: { id },
+        data: {
+          ...(dto.employeeCode !== undefined && {
+            employeeCode: dto.employeeCode,
+          }),
+          ...(dto.designation !== undefined && {
+            designation: dto.designation,
+          }),
+          ...(dto.departments !== undefined && {
+            departments: dto.departments,
+          }),
+          ...(dto.subjects !== undefined && { subjects: dto.subjects }),
+          ...(dto.assignedClasses !== undefined && {
+            assignedClasses: dto.assignedClasses,
+          }),
+          ...(dto.joinedOn !== undefined && {
+            joinedOn: dto.joinedOn ? new Date(dto.joinedOn) : null,
+          }),
+          ...(dto.leftOn !== undefined && {
+            leftOn: dto.leftOn ? new Date(dto.leftOn) : null,
+          }),
+          ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+          ...(dto.institutionId !== undefined && {
+            institution: { connect: { id: dto.institutionId } },
+          }),
+          ...(dto.academicYearId !== undefined && {
+            academicYear: { connect: { id: dto.academicYearId } },
+          }),
+        },
+      });
+
+      log.info('Teacher updated successfully', { teacherId: id });
+      return updated;
+    } catch (err: any) {
+      if (err instanceof NotFoundException || err instanceof ForbiddenException)
+        throw err;
+      log.error('Error updating teacher', {
+        error: err instanceof Error ? err.message : err,
+        code: err?.code,
+      });
+
+      if (err?.code === 'P2002') {
+        throw new BadRequestException(
+          'A teacher with this employee code already exists.',
+        );
+      }
+      if (err?.code === 'P2003') {
+        throw new BadRequestException(
+          'Referenced institution or academic year does not exist.',
+        );
+      }
+      throw new InternalServerErrorException('Failed to update teacher');
+    }
+  }
+
+  async deleteTeacher(id: string, userId?: string, userRole?: Role) {
+    const ctx = this.requestContext.getContext();
+    const log = this.logger.child({ method: 'deleteTeacher' });
+
+    log.info('Deleting teacher', { actor: ctx.userId, teacherId: id });
+    try {
+      // Ensure exists first
+      await this.getTeacherById(id, userId, userRole);
+
+      const deleted = await this.prisma.teacher.delete({ where: { id } });
+      log.info('Teacher deleted successfully', { teacherId: id });
+      return deleted;
+    } catch (err: any) {
+      if (err instanceof NotFoundException || err instanceof ForbiddenException)
+        throw err;
+      log.error('Error deleting teacher', {
+        error: err instanceof Error ? err.message : err,
+      });
+      throw new InternalServerErrorException('Failed to delete teacher');
+    }
+  }
+}

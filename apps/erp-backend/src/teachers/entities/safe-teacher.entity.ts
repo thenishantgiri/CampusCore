@@ -1,0 +1,51 @@
+import { ApiProperty } from '@nestjs/swagger';
+
+export class SafeTeacherEntity {
+  @ApiProperty({ example: 'uuid-string' })
+  id: string;
+
+  @ApiProperty({ example: 'TCH001' })
+  employeeCode: string;
+
+  @ApiProperty({ example: 'Senior Mathematics Teacher', nullable: true })
+  designation: string | null;
+
+  @ApiProperty({ example: ['Mathematics', 'Science'] })
+  departments: string[];
+
+  @ApiProperty({ example: ['Algebra', 'Geometry'] })
+  subjects: string[];
+
+  @ApiProperty({ example: ['Class 10A', 'Class 10B'] })
+  assignedClasses: string[];
+
+  @ApiProperty({ example: '2020-08-15T00:00:00.000Z', nullable: true })
+  joinedOn: string | null;
+
+  @ApiProperty({ example: null, nullable: true })
+  leftOn: string | null;
+
+  @ApiProperty({ example: true })
+  isActive: boolean;
+
+  @ApiProperty({ example: 'uuid-string' })
+  userId: string;
+
+  @ApiProperty({ example: 'uuid-string' })
+  institutionId: string;
+
+  @ApiProperty({ example: 'uuid-string' })
+  academicYearId: string;
+
+  @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
+  createdAt: string;
+
+  @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
+  updatedAt: string;
+
+  @ApiProperty({ required: false })
+  user?: {
+    name: string;
+    email: string;
+  };
+}
